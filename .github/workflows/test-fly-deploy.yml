@@ -1,23 +1,19 @@
-name: CI/CD Deploy to Fly.io
+name: Run Tests and Deploy to Fly.io
 
-# Trigger the workflow on push
 on:
   push:
     branches:
       - main
 
 jobs:
-  build_and_deploy:
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
-    # Optional: Associates this job with the 'production' environment in GitHub
-    environment: production
 
     steps:
-      # 1. Checkout the repository code
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. Setup Java environment and cache Maven dependencies
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -25,15 +21,22 @@ jobs:
           java-version: '21'
           cache: 'maven'
 
-      # 3. Build the project and run tests (CI)
       - name: Build and Run Tests
         run: mvn verify
 
-      # 4. Install flyctl
+  deploy:
+    name: Deploy to Production
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
       - name: Setup Flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
 
-      # 5. Deploy app
       - name: Deploy to Fly.io
         run: flyctl deploy --remote-only
         env:
